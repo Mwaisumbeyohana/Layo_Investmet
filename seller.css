@@ -1,0 +1,79 @@
+:root {
+  --cream: #FFFDD0;
+  --dark-cream: #F5E8C7;
+  --accent: #8B5E3C;
+  --text: #333;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--cream);
+  color: var(--text);
+  margin: 0;
+  padding: 20px;
+}
+
+.btn {
+  background-color: var(--accent);
+  color: var(--cream);
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: var(--dark-cream);
+  color: var(--accent);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 500px;
+  margin: auto;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+input,
+select,
+textarea {
+  padding: 10px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}
+
+.product-list {
+  margin-top: 20px;
+}
+
+.product-item {
+  border: 1px solid var(--accent);
+  padding: 10px;
+  margin: 10px 0;
+  background-color: var(--dark-cream);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.product-item h3 {
+  margin: 0.5rem 0;
+}
+
+@media (max-width: 600px) {
+  .product-item {
+    flex-direction: column;
+    text-align: center;
+  }
+}

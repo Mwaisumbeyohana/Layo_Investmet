@@ -1,0 +1,175 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layo Investment - Seller Panel</title>
+  <link rel="stylesheet" href="seller.css">
+</head>
+<body>
+  <h1>Seller Panel</h1>
+  <form id="login-form">
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button type="submit" class="btn">Login</button>
+  </form>
+  <form id="product-form" style="display: none;">
+    <input type="text" id="product-name" placeholder="Product Name" required>
+    <input type="number" id="product-price" placeholder="Price (TZS)" required>
+    <textarea id="product-description" placeholder="Description" required></textarea>
+    <input type="text" id="product-category" placeholder="Category" required>
+    <select id="product-media-type" required>
+      <option value="image">Image</option>
+      <option value="video">Video</option>
+    </select>
+    <input type="file" id="product-media" accept="image/*,video/*">
+    <button type="submit" class="btn">Add Product</button>
+  </form>
+  <div id="product-list" class="product-list"></div>
+  <script>
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      try {
+        const response = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        if (response.ok) {
+          document.getElementById('login-form').style.display = 'none';
+          document.getElementById('product-form').style.display = 'block';
+          loadSellerProducts();
+        } else {
+          alert('Invalid credentials');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        alert('Login failed');
+      }
+    }
+
+    async function loadSellerProducts() {
+      try {
+        const response = await fetch('/api/products');
+        const products = await response.json();
+        const productList = document.getElementById('product-list');
+        productList.innerHTML = '';
+        products.forEach(product => {
+          const item = document.createElement('div');
+          item.className = 'product-item';
+          item.innerHTML = `
+            <h3>${product.name}</h3>
+            <p>TZS ${product.price}</p>
+            <p>${product.description}</p>
+            <p>Category: ${product.category}</p>
+            <button class="btn" onclick="deleteProduct('${product._id}')">Delete</button>
+          `;
+          productList.appendChild(item);
+        });
+      } catch (err) {
+        console.error('Error loading products:', err);
+      }
+    }
+
+    async function addProduct(event) {
+      event.preventDefault();
+      const formData = new FormData();
+      formData.append('name', document.getElementById('product-name').value);
+      formData.append('price', document.getElementById('product-price').value);
+      formData.append('description', document.getElementById('product-description').value);
+      formData.append('category', document.getElementById('product-category').value);
+      formData.append('mediaType', document.getElementById('product-media-type').value);
+      formData.append('media', document.getElementById('product-media').files[0]);
+      formData.append('username', document.getElementById('username').value);
+      formData.append('password', document.getElementById('password').value);
+
+      try {
+        const response = await fetch('/api/products', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        if (result.success) {
+          alert('Product added successfully');
+          loadSellerProducts();
+          document.getElementById('product-form').reset();
+        } else {
+          alert('Error adding product');
+        }
+      } catch (err) {
+        console.error('Error adding product:', err);
+        alert('Error adding product');
+      }
+    }
+
+    async function deleteProduct(id) {
+      try {
+        const response = await fetch(`/api/products/${id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        if (response.ok) {
+          alert('Product deleted successfully');
+          loadSellerProducts();
+        } else {
+          alert('Error deleting product');
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        alert('Error deleting product');
+      }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      login();
+    });
+
+    document.getElementById('product-form').addEventListener('submit', addProduct);
+  </script>
+</body>
+</html>
